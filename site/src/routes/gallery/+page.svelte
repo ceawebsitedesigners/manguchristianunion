@@ -13,7 +13,7 @@
   }
 
   // ── Config ──────────────────────────────────────────────────────────────
-  const API_BASE = 'https://global-processes.onrender.com'; // Change to your server URL in production
+  const API_BASE = 'http://localhost:3000'; // Change to your server URL in production
   const AUTHOR   = 'Mangu Christian Union';
 
   let pictures: Picture[] = [];
