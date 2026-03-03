@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Upload — Mangu Christian Union</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --yellow: #f5e104;
+      --yellow-dark: #d4c204;
+      --black: #0a0a0a;
+      --dark: #111113;
+      --mid: #1c1c20;
+      --border: rgba(245,225,4,0.18);
+      --text: #e8e8e8;
+      --muted: #666;
+      --success: #4ade80;
+      --error: #f87171;
+      --purple: #a78bfa;
+    }
+
+    html, body {
+      min-height: 100vh;
+      background: var(--black);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      overflow-x: hidden;
+    }
+
+    /* ── BACKGROUND TEXTURE ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(245,225,4,0.03) 39px, rgba(245,225,4,0.03) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(245,225,4,0.03) 39px, rgba(245,225,4,0.03) 40px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── HEADER ── */
+    header {
+      position: relative;
+      z-index: 10;
+      padding: 2.5rem 3rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .brand-name {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      color: var(--yellow);
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    .brand-sub {
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .header-badge {
+      background: rgba(245,225,4,0.08);
+      border: 1px solid var(--border);
+      color: var(--yellow);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 3.5rem 2rem 5rem;
+    }
+
+    .page-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.6rem;
+      color: #fff;
+    }
+
+    .page-title span { color: var(--yellow); font-style: italic; }
+
+    .page-desc {
+      font-size: 0.78rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      margin-bottom: 3rem;
+    }
+
+    /* ── FORM CARD ── */
+    .form-card {
+      background: var(--dark);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    /* ── FIELD ── */
+    .field { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .field-label {
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--yellow);
+    }
+
+
+    /* ── DROP ZONE ── */
+    .drop-zone {
+      border: 2px dashed rgba(245,225,4,0.2);
+      border-radius: 12px;
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+      background: rgba(245,225,4,0.02);
+    }
+
+    .drop-zone:hover,
+    .drop-zone.dragover {
+      border-color: var(--yellow);
+      background: rgba(245,225,4,0.05);
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 1rem;
+      color: rgba(245,225,4,0.4);
+    }
+
+    .drop-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.2rem;
+      color: #ccc;
+      margin-bottom: 0.4rem;
+    }
+
+    .drop-sub {
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    /* ── FILE PREVIEW LIST ── */
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--mid);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 8px;
+      padding: 0.6rem 0.85rem;
+      font-size: 0.78rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .file-item-thumb {
+      width: 36px;
+      height: 36px;
+      border-radius: 4px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: #222;
+    }
+
+    .file-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .file-item-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text);
+      font-size: 0.8rem;
+    }
+
+    .file-item-size {
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    .file-item-status {
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+      flex-shrink: 0;
+    }
+
+    .file-item-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 2px;
+      background: var(--yellow);
+      transition: width 0.3s ease;
+    }
+
+    .file-item-remove {
+      background: none;
+      border: none;
+      color: #444;
+      cursor: pointer;
+      padding: 0.2rem;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      transition: color 0.15s;
+      flex-shrink: 0;
+    }
+    .file-item-remove:hover { color: var(--error); }
+    .file-item-remove svg { width: 14px; height: 14px; }
+
+    /* ── SUBMIT BUTTON ── */
+    .btn-upload {
+      background: var(--yellow);
+      color: var(--black);
+      border: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.82rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.9rem 2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      transition: background 0.2s, transform 0.15s;
+      width: 100%;
+    }
+    .btn-upload:hover:not(:disabled) {
+      background: var(--yellow-dark);
+      transform: translateY(-1px);
+    }
+    .btn-upload:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-upload svg { width: 16px; height: 16px; }
+
+    /* ── PROGRESS BAR (overall) ── */
+    .overall-progress {
+      display: none;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .overall-progress.visible { display: flex; }
+
+    .progress-bar-track {
+      background: var(--mid);
+      border-radius: 999px;
+      height: 6px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--yellow);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+    .progress-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* ── RESULT BANNER ── */
+    .result-banner {
+      display: none;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.85rem 1.2rem;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      letter-spacing: 0.03em;
+    }
+    .result-banner.visible { display: flex; }
+    .result-banner.success {
+      background: rgba(74,222,128,0.08);
+      border: 1px solid rgba(74,222,128,0.25);
+      color: var(--success);
+    }
+    .result-banner.error {
+      background: rgba(248,113,113,0.08);
+      border: 1px solid rgba(248,113,113,0.25);
+      color: var(--error);
+    }
+    .result-banner svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* ── SPINNER ── */
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(0,0,0,0.2);
+      border-top-color: var(--black);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── SCROLLBAR ── */
+    .file-list::-webkit-scrollbar { width: 4px; }
+    .file-list::-webkit-scrollbar-track { background: transparent; }
+    .file-list::-webkit-scrollbar-thumb { background: #333; border-radius: 999px; }
+
+    @media (max-width: 600px) {
+      header { padding: 1.5rem 1.2rem; }
+      main { padding: 2rem 1.2rem 4rem; }
+      .form-card { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-name">Mangu C.U.</div>
+    <div class="brand-sub">Photo Archive</div>
+  </div>
+  <div class="header-badge">Upload Portal</div>
+</header>
+
+<main>
+  <h1 class="page-title">Upload <span>photos</span><br>to the archive.</h1>
+  <p class="page-desc">Images are uploaded directly to Cloudinary under the specified folder.</p>
+
+  <div class="form-card">
+
+    <!-- Drop zone -->
+    <div class="field">
+      <label class="field-label">Images</label>
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" multiple accept="image/*" />
+        <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="3"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <path d="M21 15l-5-5L5 21"/>
+        </svg>
+        <div class="drop-title">Drop images here</div>
+        <div class="drop-sub">or click to browse — JPG, PNG, WEBP, GIF</div>
+      </div>
+    </div>
+
+    <!-- File list -->
+    <div class="file-list" id="file-list" style="display:none"></div>
+
+    <!-- Overall progress -->
+    <div class="overall-progress" id="overall-progress">
+      <div class="progress-label">
+        <span id="progress-text">Uploading…</span>
+        <span id="progress-count"></span>
+      </div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- Result banner -->
+    <div class="result-banner" id="result-banner">
+      <svg id="result-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
+      <span id="result-text"></span>
+    </div>
+
+    <!-- Submit -->
+    <button class="btn-upload" id="upload-btn" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      <span id="btn-label">Upload Images</span>
+    </button>
+
+  </div>
+</main>
+
+<script>
+  const API_BASE = 'https://global-processes.onrender.com';
+  const UPLOAD_FOLDER = 'Clients/manguchristianunion'; // ← change this to set the destination
+
+  const dropZone     = document.getElementById('drop-zone');
+  const fileInput    = document.getElementById('file-input');
+  const fileListEl   = document.getElementById('file-list');
+  const uploadBtn    = document.getElementById('upload-btn');
+  const btnLabel     = document.getElementById('btn-label');
+  const progressWrap = document.getElementById('overall-progress');
+  const progressFill = document.getElementById('progress-fill');
+  const progressText = document.getElementById('progress-text');
+  const progressCount= document.getElementById('progress-count');
+  const resultBanner = document.getElementById('result-banner');
+  const resultIcon   = document.getElementById('result-icon');
+  const resultText   = document.getElementById('result-text');
+
+  let selectedFiles = []; // { file, id, status, progress }
+  let uploading = false;
+
+  // ── Drag & drop ──────────────────────────────────────────────────────────
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    addFiles([...e.dataTransfer.files]);
+  });
+  fileInput.addEventListener('change', () => {
+    addFiles([...fileInput.files]);
+    fileInput.value = '';
+  });
+
+  function addFiles(files) {
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    imageFiles.forEach(file => {
+      const id = Math.random().toString(36).slice(2);
+      selectedFiles.push({ file, id, status: 'pending', progress: 0 });
+    });
+    renderFileList();
+    updateBtn();
+    hideResult();
+  }
+
+  function removeFile(id) {
+    selectedFiles = selectedFiles.filter(f => f.id !== id);
+    renderFileList();
+    updateBtn();
+  }
+
+  function renderFileList() {
+    if (selectedFiles.length === 0) {
+      fileListEl.style.display = 'none';
+      return;
+    }
+    fileListEl.style.display = 'flex';
+    fileListEl.innerHTML = '';
+    selectedFiles.forEach(({ file, id, status, progress }) => {
+      const item = document.createElement('div');
+      item.className = 'file-item';
+      item.id = `file-item-${id}`;
+
+      // Thumbnail
+      const thumb = document.createElement('img');
+      thumb.className = 'file-item-thumb';
+      thumb.alt = '';
+      const reader = new FileReader();
+      reader.onload = e => { thumb.src = e.target.result; };
+      reader.readAsDataURL(file);
+
+      // Info
+      const info = document.createElement('div');
+      info.className = 'file-item-info';
+      info.innerHTML = `
+        <div class="file-item-name">${file.name}</div>
+        <div class="file-item-size">${formatBytes(file.size)}</div>
+      `;
+
+      // Status
+      const statusEl = document.createElement('span');
+      statusEl.className = 'file-item-status';
+      statusEl.id = `status-${id}`;
+      statusEl.style.color = statusColor(status);
+      statusEl.textContent = statusLabel(status);
+
+      // Remove button (only if not uploading)
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'file-item-remove';
+      removeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+      removeBtn.onclick = () => { if (!uploading) removeFile(id); };
+
+      // Progress bar
+      const progressBar = document.createElement('div');
+      progressBar.className = 'file-item-progress';
+      progressBar.id = `progress-${id}`;
+      progressBar.style.width = progress + '%';
+
+      item.appendChild(thumb);
+      item.appendChild(info);
+      item.appendChild(statusEl);
+      item.appendChild(removeBtn);
+      item.appendChild(progressBar);
+      fileListEl.appendChild(item);
+    });
+  }
+
+  function updateFileItem(id, status, progress) {
+    const statusEl = document.getElementById(`status-${id}`);
+    const progressBar = document.getElementById(`progress-${id}`);
+    if (statusEl) { statusEl.textContent = statusLabel(status); statusEl.style.color = statusColor(status); }
+    if (progressBar) progressBar.style.width = progress + '%';
+    // Update internal state
+    const entry = selectedFiles.find(f => f.id === id);
+    if (entry) { entry.status = status; entry.progress = progress; }
+  }
+
+  function statusLabel(s) {
+    return { pending: 'Pending', uploading: 'Uploading…', done: '✓ Done', error: '✗ Failed' }[s] ?? s;
+  }
+  function statusColor(s) {
+    return { pending: '#555', uploading: '#f5e104', done: '#4ade80', error: '#f87171' }[s] ?? '#555';
+  }
+
+  function updateBtn() {
+    const hasPending = selectedFiles.some(f => f.status === 'pending');
+    uploadBtn.disabled = !hasPending || uploading;
+  }
+
+  function formatBytes(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+    return (b / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function hideResult() {
+    resultBanner.className = 'result-banner';
+  }
+
+  function showResult(type, msg) {
+    resultBanner.className = `result-banner visible ${type}`;
+    resultText.textContent = msg;
+    resultIcon.innerHTML = type === 'success'
+      ? '<polyline points="20 6 9 17 4 12"/>'
+      : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
+  }
+
+  // ── Upload ────────────────────────────────────────────────────────────────
+  uploadBtn.addEventListener('click', async () => {
+    const folder = UPLOAD_FOLDER;
+
+    const pending = selectedFiles.filter(f => f.status === 'pending');
+    if (!pending.length) return;
+
+    uploading = true;
+    uploadBtn.disabled = true;
+    btnLabel.innerHTML = '<span class="spinner"></span> Uploading…';
+    hideResult();
+
+    // Show overall progress
+    progressWrap.classList.add('visible');
+    let done = 0;
+
+    const updateOverall = () => {
+      const pct = Math.round((done / pending.length) * 100);
+      progressFill.style.width = pct + '%';
+      progressCount.textContent = `${done} / ${pending.length}`;
+      progressText.textContent = done === pending.length ? 'Complete!' : 'Uploading…';
+    };
+    updateOverall();
+
+    let successCount = 0;
+    let failCount = 0;
+
+    // Upload sequentially to avoid hammering the server
+    for (const entry of pending) {
+      updateFileItem(entry.id, 'uploading', 10);
+      try {
+        const formData = new FormData();
+        formData.append('file', entry.file);
+        formData.append('folder', folder);
+
+        const res = await fetch(`${API_BASE}/media/api/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error ?? `HTTP ${res.status}`);
+
+        updateFileItem(entry.id, 'done', 100);
+        successCount++;
+      } catch (err) {
+        console.error('Upload failed:', err);
+        updateFileItem(entry.id, 'error', 0);
+        failCount++;
+      }
+      done++;
+      updateOverall();
+    }
+
+    uploading = false;
+    btnLabel.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      Upload Images`;
+
+    if (failCount === 0) {
+      showResult('success', `${successCount} image${successCount !== 1 ? 's' : ''} uploaded to "${folder}" successfully.`);
+      // Clear done files after a moment
+      setTimeout(() => {
+        selectedFiles = selectedFiles.filter(f => f.status !== 'done');
+        renderFileList();
+        updateBtn();
+      }, 2000);
+    } else {
+      showResult('error', `${successCount} uploaded, ${failCount} failed. Retry the failed items.`);
+      // Reset failed items to pending so they can retry
+      selectedFiles.forEach(f => { if (f.status === 'error') f.status = 'pending'; });
+      renderFileList();
+      updateBtn();
+    }
+  });
+</script>
+</body>
+</html>
