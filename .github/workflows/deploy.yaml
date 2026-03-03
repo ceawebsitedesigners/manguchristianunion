@@ -19,8 +19,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: enter dir
-        run: cd site
+      # - name: enter dir
+      #   run: cd site
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -30,7 +30,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: site
-        run: npm install 
+        run: npm ci 
 
       - name: Build site
         working-directory: site
