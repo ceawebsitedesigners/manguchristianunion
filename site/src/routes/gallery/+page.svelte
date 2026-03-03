@@ -9,27 +9,58 @@
     width: number;
     height: number;
     url: string;
+    public_id?: string;
   }
+
+  // ── Config ──────────────────────────────────────────────────────────────
+  const API_BASE = 'https://global-processes.onrender.com'; // Change to your server URL in production
+  const AUTHOR   = 'Mangu Christian Union';
 
   let pictures: Picture[] = [];
   let loading = true;
+  let loadingMore = false;
+  let nextCursor: string | null = null;
   let downloadingId: string | null = null;
   let notification: string | null = null;
+  let errorMsg: string | null = null;
 
   const selectedImage = writable<Picture | null>(null);
   const selectedIndex = writable<number>(-1);
 
-  onMount(async () => {
+  // ── Fetch images from Flask ──────────────────────────────────────────────
+  async function fetchImages(cursor?: string) {
     try {
-      const res = await fetch("https://picsum.photos/v2/list?limit=80&page=1");
-      pictures = await res.json();
-    } catch (e) {
-      console.error("Failed to fetch images", e);
-    } finally {
-      loading = false;
+      const url = cursor
+        ? `${API_BASE}/media/api/images/next?cursor=${encodeURIComponent(cursor)}&limit=80&folder=Clients/manguchristianunion`
+        : `${API_BASE}/media/api/images?limit=80&folder=Clients/manguchristianunion`;
+
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      const data = await res.json();
+
+      if (data.error) throw new Error(data.error);
+
+      pictures = cursor ? [...pictures, ...data.pictures] : data.pictures;
+      nextCursor = data.next_cursor ?? null;
+    } catch (e: any) {
+      console.error('Failed to fetch images', e);
+      errorMsg = e.message ?? 'Failed to load images. Check server connection.';
     }
+  }
+
+  onMount(async () => {
+    await fetchImages();
+    loading = false;
   });
 
+  async function loadMore() {
+    if (!nextCursor || loadingMore) return;
+    loadingMore = true;
+    await fetchImages(nextCursor);
+    loadingMore = false;
+  }
+
+  // ── Modal helpers ─────────────────────────────────────────────────────────
   function openImage(picture: Picture, index: number) {
     selectedImage.set(picture);
     selectedIndex.set(index);
@@ -62,24 +93,23 @@
     if ((e.target as HTMLElement).classList.contains('modal-backdrop')) closeModal();
   }
 
+  // ── Download ──────────────────────────────────────────────────────────────
   async function downloadImage(picture: Picture, e: MouseEvent) {
     e.stopPropagation();
     downloadingId = picture.id;
-
     try {
-      // Force a real download via blob
       const response = await fetch(picture.download_url);
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `photo-${picture.id}-by-${picture.author.replace(/\s+/g, '-')}.jpg`;
+      a.download = `mangu-cu-photo-${picture.id}.jpg`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       showNotification('Download started!');
-    } catch (err) {
+    } catch {
       showNotification('Download failed — try again.');
     } finally {
       downloadingId = null;
@@ -91,10 +121,10 @@
     setTimeout(() => { notification = null; }, 2800);
   }
 
-  // Intersection Observer–based lazy load
+  // ── Lazy load ─────────────────────────────────────────────────────────────
   function lazyLoad(node: HTMLImageElement, src: string) {
     const observer = new IntersectionObserver(
-      (entries) => {
+      entries => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             node.src = src;
@@ -106,14 +136,24 @@
       { rootMargin: '200px' }
     );
     observer.observe(node);
-    return {
-      destroy() { observer.disconnect(); }
-    };
+    return { destroy() { observer.disconnect(); } };
   }
 
-  // Thumbnail URL helper (small size for grid)
+  // ── Thumbnail URL (via Cloudinary transformations embedded in secure_url) ─
+  // The Flask server returns the full secure_url; we swap dimensions for thumbs.
   function thumbUrl(picture: Picture): string {
-    return `https://picsum.photos/id/${picture.id}/400/300`;
+    // If the URL is a Cloudinary URL, inject a resize transformation
+    if (picture.url.includes('res.cloudinary.com')) {
+      return picture.url.replace('/upload/', '/upload/w_400,h_300,c_fill,q_auto,f_auto/');
+    }
+    return picture.url;
+  }
+
+  function placeholderUrl(picture: Picture): string {
+    if (picture.url.includes('res.cloudinary.com')) {
+      return picture.url.replace('/upload/', '/upload/w_20,h_15,c_fill,q_10,e_blur:800/');
+    }
+    return picture.url;
   }
 </script>
 
@@ -126,6 +166,14 @@
       <p class="brand-tagline">Curated photography from Mangu Christian Union</p>
     </div>
   </header>
+
+  <!-- Error state -->
+  {#if errorMsg}
+    <div class="error-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      {errorMsg}
+    </div>
+  {/if}
 
   <!-- Skeleton or gallery -->
   {#if loading}
@@ -140,30 +188,41 @@
         </div>
       {/each}
     </div>
+  {:else if pictures.length === 0 && !errorMsg}
+    <div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      <p>No images found in your Cloudinary library.</p>
+      <small>Upload photos to Cloudinary and they'll appear here automatically.</small>
+    </div>
   {:else}
     <div class="grid">
       {#each pictures as picture, i}
-        <div class="card" on:click={() => openImage(picture, i)} on:keydown={(e) => e.key === 'Enter' && openImage(picture, i)} role="button" tabindex="0">
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <div
+          class="card"
+          on:click={() => openImage(picture, i)}
+          on:keydown={(e) => e.key === 'Enter' && openImage(picture, i)}
+          role="button"
+          tabindex="0"
+        >
           <div class="card-img-wrap">
-            <!-- Placeholder blur -->
             <img
               class="thumb-placeholder"
-              src={`https://picsum.photos/id/${picture.id}/20/15`}
+              src={placeholderUrl(picture)}
               alt=""
               aria-hidden="true"
             />
-            <!-- Actual lazy-loaded image -->
             <img
               class="thumb"
               src=""
               use:lazyLoad={thumbUrl(picture)}
-              alt="Photo by {picture.author}"
+              alt="Photo by {AUTHOR}"
             />
             <div class="card-overlay">
               <button
                 class="btn-download"
                 on:click={(e) => downloadImage(picture, e)}
-                aria-label="Download photo by {picture.author}"
+                aria-label="Download photo"
                 disabled={downloadingId === picture.id}
               >
                 {#if downloadingId === picture.id}
@@ -180,6 +239,19 @@
         </div>
       {/each}
     </div>
+
+    <!-- Load More -->
+    {#if nextCursor}
+      <div class="load-more-wrap">
+        <button class="btn-load-more" on:click={loadMore} disabled={loadingMore}>
+          {#if loadingMore}
+            <span class="spinner"></span> Loading…
+          {:else}
+            Load more photos
+          {/if}
+        </button>
+      </div>
+    {/if}
   {/if}
 
   <!-- Modal lightbox -->
@@ -187,11 +259,13 @@
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <div class="modal-backdrop" on:click={handleModalClick} role="dialog" aria-modal="true" tabindex="-1">
       <div class="modal-content">
-        <img src={$selectedImage.download_url} alt="Photo by {$selectedImage.author}" />
+        <img src={$selectedImage.url} alt="Photo by {AUTHOR}" />
 
-        <!-- Info bar -->
         <div class="modal-info">
-          
+          <span class="modal-author">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            {AUTHOR}
+          </span>
           <button class="btn-modal-download" on:click={(e) => downloadImage($selectedImage, e)}>
             {#if downloadingId === $selectedImage.id}
               <span class="spinner"></span> Downloading…
@@ -202,7 +276,6 @@
           </button>
         </div>
 
-        <!-- Nav buttons -->
         {#if $selectedIndex > 0}
           <button class="nav-btn prev" on:click|stopPropagation={() => navigate(-1)} aria-label="Previous">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -214,7 +287,6 @@
           </button>
         {/if}
 
-        <!-- Close -->
         <button class="modal-close" on:click={closeModal} aria-label="Close">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -246,6 +318,35 @@
   .header-inner { max-width: 1600px; margin: 0 auto; }
   .brand-tagline { font-size: 0.8rem; color: #0a0a0a; letter-spacing: 0.04em; text-transform: uppercase; }
 
+  /* ── ERROR / EMPTY ───────────────────────── */
+  .error-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: rgba(239,68,68,0.12);
+    border: 1px solid rgba(239,68,68,0.35);
+    color: #fca5a5;
+    padding: 0.85rem 1.4rem;
+    margin: 1.5rem auto;
+    max-width: 700px;
+    border-radius: 10px;
+    font-size: 0.88rem;
+  }
+  .error-banner svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 6rem 2rem;
+    color: #666;
+    text-align: center;
+  }
+  .empty-state svg { width: 56px; height: 56px; color: #444; }
+  .empty-state p { font-size: 1rem; color: #888; }
+  .empty-state small { font-size: 0.8rem; color: #555; }
+
   /* ── GRID ────────────────────────────────── */
   .grid {
     display: grid;
@@ -276,7 +377,6 @@
     background: #1c1c20;
   }
 
-  /* Blurry placeholder */
   .thumb-placeholder {
     position: absolute;
     inset: 0;
@@ -296,9 +396,7 @@
     opacity: 1;
     transition: opacity 0.5s ease, transform 0.5s ease;
   }
-  
 
-  /* Hover overlay */
   .card-overlay {
     position: absolute;
     inset: 0;
@@ -324,7 +422,6 @@
   .expand-icon svg { width: 28px; height: 28px; }
   .card:hover .expand-icon { transform: translate(-50%, -50%) scale(1); }
 
-  /* Download button on card */
   .btn-download {
     background: rgba(255,255,255,0.12);
     backdrop-filter: blur(8px);
@@ -345,14 +442,14 @@
   .btn-download:hover { background: rgba(167,139,250,0.35); border-color: #a78bfa; transform: scale(1.07); }
   .btn-download:disabled { opacity: 0.6; cursor: wait; }
 
-  /* Card footer */
-    .skeleton-img {
+  /* ── SKELETON ────────────────────────────── */
+  .skeleton .card-img-wrap { background: #1c1c20; }
+  .skeleton-img {
     width: 100%;
-    height: 100%;
+    height: 200px;
     background: linear-gradient(90deg, #1c1c20 25%, #252529 50%, #1c1c20 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
-    border-radius: 0;
   }
   .skeleton-footer { padding: 0.65rem 0.85rem; display: flex; flex-direction: column; gap: 0.4rem; }
   .skeleton-line {
@@ -367,6 +464,26 @@
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
   }
+
+  /* ── LOAD MORE ───────────────────────────── */
+  .load-more-wrap { display: flex; justify-content: center; padding: 2.5rem 1rem; }
+  .btn-load-more {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    background: transparent;
+    border: 1px solid rgba(167,139,250,0.45);
+    color: #a78bfa;
+    padding: 0.7rem 2rem;
+    border-radius: 999px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    letter-spacing: 0.02em;
+  }
+  .btn-load-more:hover { background: rgba(167,139,250,0.12); transform: translateY(-1px); }
+  .btn-load-more:disabled { opacity: 0.5; cursor: wait; }
 
   /* ── MODAL ───────────────────────────────── */
   .modal-backdrop {
@@ -438,7 +555,6 @@
   .btn-modal-download:hover { background: #9166f0; transform: translateY(-1px); }
   .btn-modal-download:disabled { opacity: 0.6; cursor: wait; }
 
-  /* Nav arrows */
   .nav-btn {
     position: absolute;
     top: calc(50% - 30px);
@@ -461,7 +577,6 @@
   .prev { left: -64px; }
   .next { right: -64px; }
 
-  /* Close button */
   .modal-close {
     position: absolute;
     top: -48px;
@@ -502,7 +617,6 @@
   @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(12px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
   @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
 
-  /* ── SPINNER ─────────────────────────────── */
   .spinner {
     width: 14px;
     height: 14px;
@@ -514,7 +628,6 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── RESPONSIVE ──────────────────────────── */
   @media (max-width: 900px) {
     .prev { left: -48px; }
     .next { right: -48px; }
