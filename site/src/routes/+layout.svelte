@@ -1,5 +1,5 @@
 <script lang="ts">
-	import favicon from '$lib/assets/favicon.svg';
+	import favicon from '$lib/assets/hero-church.jpg';
 	import Nav from '$lib/components/navbar.svelte'
 
 	let { children } = $props();
