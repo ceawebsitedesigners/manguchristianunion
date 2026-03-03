@@ -1,7 +1,7 @@
 <script lang="ts">  
   import { base } from '$app/paths';  
   import { goto } from '$app/navigation';  
-  import img from '$lib/assets/favicon.svg';  
+  import img from '$lib/assets/hero-church.jpg';  
 
   function navigate_to_gallery() {  
     goto(`${base}/gallery`);  
