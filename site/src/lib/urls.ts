@@ -1,7 +1,7 @@
 // Define environments
 export const ENV = {
-  MANGU_API: 'http://127.0.0.1:5000',
-  GLOBAL_API: 'https://global-processes.onrender.com'
+	MANGU_API: 'https://manguchristianunion.onrender.com',
+	GLOBAL_API: 'https://global-processes.onrender.com'
 };
 
 export const URLS = {
