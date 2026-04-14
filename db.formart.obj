@@ -1,0 +1,35 @@
+{
+  "tenant_id": "client_456",
+  "title": "Mangu Christian Union",
+  "data": {
+    "leaders" :{
+        "2026": {
+            "theme": "",
+            "leaders": {
+                "chairman": "",
+                "deputyChairman": "",
+                "treasurer": "",
+                "secretary": "",
+                "churchManager": "",
+                "praiseAndWorship": [],
+                "choirMaster": "",
+                "discipleship": [],
+                "bibleStudy": [],
+                "churchengineer": []
+            }
+        }
+    }, 
+
+    "events":{
+        "curally":{
+            "title": "",
+            "date": "",
+            "time": "",
+            "venue": "",
+            "description": "",
+            
+        }
+    }
+
+    }
+}

@@ -13,8 +13,9 @@
   }
 
   // ── Config ──────────────────────────────────────────────────────────────
-  const API_BASE = 'https://global-processes.onrender.com'; // Change to your server URL in production
+  import { URLS } from '$lib/urls';
   const AUTHOR   = 'Mangu Christian Union';
+  const FOLDER   = 'Clients/manguchristianunion';
 
   let pictures: Picture[] = [];
   let loading = true;
@@ -31,8 +32,9 @@
   async function fetchImages(cursor?: string) {
     try {
       const url = cursor
-        ? `${API_BASE}/media/api/images/next?cursor=${encodeURIComponent(cursor)}&limit=80&folder=Clients/manguchristianunion`
-        : `${API_BASE}/media/api/images?limit=80&folder=Clients/manguchristianunion`;
+        ? URLS.mediaImagesNext(cursor, FOLDER)
+        : URLS.mediaImages(FOLDER);
+
 
       const res = await fetch(url);
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
@@ -302,11 +304,11 @@
 
 <style>
   :global(*, *::before, *::after) { box-sizing: border-box; margin: 0; padding: 0; }
-  :global(body) { background-color: #f5e104; color: #e8e8e8; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+  :global(body) { background-color: #0a0a0a; color: #e8e8e8; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
 
   /* ── HEADER ─────────────────────────────── */
   header {
-    background: linear-gradient(180deg, #e0f403 0%, transparent 100%);
+    background: rgb(240, 240, 28);
     border-bottom: 1px solid rgba(255,255,255,0.06);
     padding: 2rem 2.5rem 1.6rem;
     position: sticky;

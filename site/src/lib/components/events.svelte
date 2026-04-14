@@ -1,36 +1,29 @@
 <script lang="ts">
     import { onMount } from "svelte";
-
-    // ── Type ──────────────────────────────────────
-    type Event = {
-        eventname: string;
-        eventdate: string; // YYYY-MM-DD
-        eventlocation: string;
-    };
+    import { browser } from "$app/environment";
+    import { eventsStore, getEventsFromLocal, saveEventsToLocal, type Event } from "$lib/stores";
+    import { URLS } from "$lib/urls";
 
     // ── State ──────────────────────────────────────
     let events: Event[] = [];
     let loading: boolean = true;
 
-    // ── Mock data ──────────────────────────────────
-    const allEvents: Record<number, Event> = {
-        // 1: { eventname: "Tech Meetup",          eventdate: "2026-02-10", eventlocation: "Nairobi"  },
-        // 2: { eventname: "AI Bootcamp",          eventdate: "2026-03-01", eventlocation: "Kisumu"   },
-        // 3: { eventname: "Old Conference",       eventdate: "2024-01-10", eventlocation: "Mombasa"  },
-        // 4: { eventname: "Startup Pitch Night",  eventdate: "2026-04-15", eventlocation: "Eldoret"  }
-    };
+    // Subscribe to store
+    eventsStore.subscribe(value => {
+        events = value;
+        if (events.length > 0) {
+            loading = false;
+        }
+    });
+
+    if (browser) {
+        const cached = getEventsFromLocal();
+        if (cached && cached.length > 0) {
+            eventsStore.init(cached);
+        }
+    }
 
     // ── Helpers ────────────────────────────────────
-
-    /** Filter to future events and sort ascending by date. */
-    function getUpcomingEvents(): Event[] {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // midnight local — no time-zone drift
-
-        return Object.values(allEvents)
-            .filter(event => new Date(event.eventdate + "T00:00:00") >= today)
-            .sort((a, b) => a.eventdate.localeCompare(b.eventdate));
-    }
 
     /**
      * "2026-02-10" → "Mon, 10 Feb 2026"
@@ -47,12 +40,35 @@
     }
 
     // ── Lifecycle ──────────────────────────────────
-    onMount(() => {
-        // Simulates a network delay; replace with a real fetch when ready.
-        setTimeout(() => {
-            events = getUpcomingEvents();
+    onMount(async () => {
+        // Try to load from store first (populated from top level or previous navigation)
+        if (events.length > 0) {
             loading = false;
-        }, 800);
+            return;
+        }
+
+        try {
+            const res = await fetch(URLS.events);
+            if (res.ok) {
+                const data = await res.json();
+                
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                const upcoming = data
+                    .filter((event: Event) => new Date(event.eventdate + "T00:00:00") >= today)
+                    .sort((a: Event, b: Event) => a.eventdate.localeCompare(b.eventdate));
+                
+                eventsStore.init(upcoming);
+                saveEventsToLocal(upcoming);
+            } else {
+                console.error("Failed to fetch events");
+            }
+        } catch (err) {
+            console.error("Error fetching events:", err);
+        } finally {
+            loading = false;
+        }
     });
 </script>
 
