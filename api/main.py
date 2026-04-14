@@ -24,10 +24,11 @@ def get_leadership():
     
     res = requests.get(f"{CENTRAL_API}/api/v1/tenant/{TENANT_ID}/leaders")
     if res.ok:
+        
         data = res.json()
         if str(year) in data:
             return jsonify(data[str(year)]), 200
-    return jsonify({}), 404
+    return jsonify({}),500
 
 @app.route('/leadership', methods=['POST'])
 def add_leadership():
