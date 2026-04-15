@@ -24,7 +24,7 @@
     right: 0;
     display: flex;  
     flex-direction: row; 
-    justify-content: space-between;  
+    justify-content: end;  
     align-items: center;
     padding: 0 1rem;  
     height: 10vh;
