@@ -1,7 +1,6 @@
 <script>
   import Home from '../lib/components/home.svelte';
 	import About from '../lib/components/about.svelte';
-	import Content from '../lib/components/content.svelte';
 	import Events from '../lib/components/events.svelte';
 	import Leadership from '../lib/components/leadership.svelte';
 	import Ministries from '../lib/components/ministries.svelte';

@@ -1,25 +1,24 @@
 <script lang="ts">
-    import { goto } from '$app/navigation';
-    import { base } from '$app/paths';
+    // import { goto } from '$app/navigation';
+    import { resolve } from '$app/paths';
     import { onMount } from 'svelte';
 
     let isCheckingAuth = true;
 
     onMount(() => {
-        // Simple auth check
-        const token = localStorage.getItem('authToken');
+        // const token = localStorage.getItem('authToken');
         // Uncomment to enforce auth strictly:
-        // if (!token) { goto(`${base}/admin`); }
+        // if (!token) { goto(resolve('/admin')); }
         
         setTimeout(() => {
             isCheckingAuth = false;
         }, 300);
     });
 
-    function handleLogout() {
-        localStorage.removeItem('authToken');
-        goto(`${base}/admin`);
-    }
+    // function handleLogout() {
+    //     localStorage.removeItem('authToken');
+    //     goto(resolve('/admin'));
+    // }
 </script>
 
 <svelte:head>
@@ -32,8 +31,6 @@
     </div>
 {/if}
 
-
-
 <!-- Main Content -->
 <div class="container">
     <div class="page-header">
@@ -43,7 +40,7 @@
 
     <div class="dashboard-grid">
         <!-- Upload Photos Card -->
-        <a href="{base}/admin/upload" class="card">
+        <a href={resolve('/admin/upload')} class="card">
             <div class="card-icon">📸</div>
             <h3 class="card-title">Upload Photos</h3>
             <p class="card-desc">Add new event photos and gallery images to keep the website media up to date.</p>
@@ -51,7 +48,7 @@
         </a>
 
         <!-- Manage Leadership Card -->
-        <a href="{base}/admin/leadership" class="card">
+        <a href={resolve('/admin/leadership')} class="card">
             <div class="card-icon">👥</div>
             <h3 class="card-title">Add Leaders</h3>
             <p class="card-desc">Update the church officials, set yearly themes, and assign roles for the serving term.</p>
@@ -59,15 +56,15 @@
         </a>
         
         <!-- Manage Events Card -->
-        <a href="{base}/admin/events" class="card">
+        <a href={resolve('/admin/events')} class="card">
             <div class="card-icon">📅</div>
             <h3 class="card-title">Manage Events</h3>
             <p class="card-desc">Add upcoming church events to keep the community informed.</p>
             <div class="card-btn">Manage Events</div>
         </a>
 
-         <!-- Settings Card -->
-         <a href="#" class="card" on:click|preventDefault={() => alert('Settings module coming soon!')}>
+        <!-- Settings Card -->
+        <a href="#" class="card" on:click|preventDefault={() => alert('Settings module coming soon!')}>
             <div class="card-icon">⚙️</div>
             <h3 class="card-title">Site Settings</h3>
             <p class="card-desc">Configure general site settings and other miscellaneous options.</p>

@@ -1,14 +1,14 @@
 <script lang="ts">
     import { page } from '$app/stores';
     import { onMount } from 'svelte';
-    import { base } from '$app/paths';
+    import { resolve } from '$app/paths';
     import { goto } from '$app/navigation';
 
     let theme = 'light';
     let isMounted = false;
 
     // Check if the current route is the login page (no navbar)
-    $: isLogin = $page.url.pathname === `${base}/admin`;
+    $: isLogin = $page.url.pathname === resolve('/admin');
 
     onMount(() => {
         isMounted = true;
@@ -27,9 +27,13 @@
         document.documentElement.setAttribute('data-theme', theme);
     }
 
-    function handleLogout() {
+    async function handleLogout() {
         localStorage.removeItem('authToken');
-        goto(`${base}/admin`);
+        try {
+            await goto(resolve('/admin'));
+        } catch (error) {
+            console.error('Navigation failed:', error);
+        }
     }
 </script>
 
@@ -37,10 +41,10 @@
     {#if !isLogin}
         <nav class="navbar">
             <div class="nav-left">
-                {#if $page.url.pathname !== `${base}/admin/dashboard`}
-                    <a href="{base}/admin/dashboard" class="back-btn">← Back</a>
+                {#if $page.url.pathname !== resolve('/admin/dashboard')}
+                    <a href={resolve('/admin/dashboard')} class="back-btn">← Back</a>
                 {/if}
-                <a href="{base}/admin/dashboard" class="navbar-brand">
+                <a href={resolve('/admin/dashboard')} class="navbar-brand">
                     <div class="logo">🙏</div>
                     <div class="brand-text">
                         <h1>Admin Panel</h1>

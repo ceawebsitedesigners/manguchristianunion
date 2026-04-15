@@ -1,7 +1,7 @@
 <script lang="ts">  
   import { base } from '$app/paths';  
   import { goto } from '$app/navigation';  
-  import img from '$lib/assets/hero-church.jpg';  
+
 
   function navigate_to_gallery() {  
     goto(`${base}/gallery`);  
@@ -9,9 +9,7 @@
 </script>  
 
 <nav>  
-  <div class="decoration">  
-    <!-- <img src={img} alt="logo" class="logo">   -->
-  </div>  
+   
 
   <div class="navigators">  
     <button on:click={navigate_to_gallery}>Gallery</button>  

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { base } from '$app/paths';
+    
     import { URLS } from '$lib/urls';
     import { clearEventsCache } from '$lib/stores';
 

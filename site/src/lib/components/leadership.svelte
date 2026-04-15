@@ -1,18 +1,13 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	
 	import { browser } from '$app/environment';
 	import { URLS } from '$lib/urls';
-	import { 
-		leadershipStore, 
-		getLeadershipFromLocal, 
-		saveLeadershipToLocal, 
-		type YearData 
+	import {
+		leadershipStore,
+		getLeadershipFromLocal,
+		saveLeadershipToLocal,
+		type YearData
 	} from '$lib/stores';
-
-	// ── Types ──────────────────────────────────────
-	interface Leader {
-		[key: string]: string | string[];
-	}
 
 	function formatLabel(key: string) {
 		const result = key.replace(/([A-Z])/g, ' $1');
@@ -20,8 +15,7 @@
 	}
 
 	// ── State ──────────────────────────────────────
-	const currentYear = new Date().getFullYear();
-	let selectedYear = currentYear.toString();
+	let selectedYear = new Date().getFullYear().toString();
 	let showMore = false;
 	let currentData: YearData | null = null;
 	let isLoading = true;
@@ -29,7 +23,7 @@
 	let cache: Record<string, YearData> = {};
 
 	// Subscribe to store
-	leadershipStore.subscribe(value => {
+	leadershipStore.subscribe((value) => {
 		cache = value;
 		if (selectedYear && cache[selectedYear]) {
 			currentData = cache[selectedYear];
@@ -47,10 +41,16 @@
 	}
 
 	// Default to last 5 years for the dropdown
-	$: availableYears = Array.from({ length: 5 }, (_, i) => (currentYear - i).toString());
+	let availableYears = Array.from({ length: 5 }, (_, i) =>
+		(new Date().getFullYear() - i).toString()
+	);
 
 	// ── API Call ───────────────────────────────────
 	async function fetchLeadershipData(year: string) {
+		// Always clear error and reset state before any early returns
+		error = null;
+		currentData = null;
+
 		// 1. Check in-memory cache first
 		if (cache[year]) {
 			currentData = cache[year];
@@ -59,14 +59,13 @@
 		}
 
 		isLoading = true;
-		error = null;
 		try {
 			const res = await fetch(`${URLS.leadership}?year=${year}`);
 			if (!res.ok) {
 				throw new Error(`Failed to fetch data: ${res.statusText}`);
 			}
 			const data = await res.json();
-			
+
 			if (!data || Object.keys(data).length === 0) {
 				currentData = null;
 			} else {
@@ -75,9 +74,10 @@
 				leadershipStore.addYear(year, data);
 				saveLeadershipToLocal({ ...cache, [year]: data });
 			}
-		} catch (err: any) {
+		} catch (err: unknown) {
+			const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
 			console.error(err);
-			error = err.message;
+			error = errorMessage;
 			currentData = null;
 		} finally {
 			isLoading = false;
@@ -106,27 +106,29 @@
 		'engineers'
 	];
 
-	$: extraLeaders = currentData ? (() => {
-		const leadersObj = currentData.leaders || {};
-		const mainRoles = ['chairman', 'deputyChairman', 'treasurer', 'secretary'];
-		const result = [];
-		
-		// 1. Add known roles in order
-		for (const role of extraRolesOrder) {
-			if (leadersObj[role] !== undefined) {
-				result.push({ key: role, value: leadersObj[role] });
-			}
-		}
-		
-		// 2. Add any remaining dynamically fetched roles not mapped
-		for (const [k, v] of Object.entries(leadersObj)) {
-			if (!mainRoles.includes(k) && !extraRolesOrder.includes(k)) {
-				result.push({ key: k, value: v });
-			}
-		}
-		
-		return result;
-	})() : [];
+	$: extraLeaders = currentData
+		? (() => {
+				const leadersObj = currentData.leaders || {};
+				const mainRoles = ['chairman', 'deputyChairman', 'treasurer', 'secretary'];
+				const result = [];
+
+				// 1. Add known roles in order
+				for (const role of extraRolesOrder) {
+					if (leadersObj[role] !== undefined) {
+						result.push({ key: role, value: leadersObj[role] });
+					}
+				}
+
+				// 2. Add any remaining dynamically fetched roles not mapped
+				for (const [k, v] of Object.entries(leadersObj)) {
+					if (!mainRoles.includes(k) && !extraRolesOrder.includes(k)) {
+						result.push({ key: k, value: v });
+					}
+				}
+
+				return result;
+			})()
+		: [];
 </script>
 
 <!-- ────────────────────────────────────────────── -->
@@ -143,7 +145,7 @@
 	<div id="year-selector">
 		<label for="year-select">Select Year:</label>
 		<select id="year-select" bind:value={selectedYear}>
-			{#each availableYears as year}
+			{#each availableYears as year (year)}
 				<option value={year}>{year}</option>
 			{/each}
 		</select>
@@ -185,13 +187,13 @@
 		<!-- Collapsible extra leaders -->
 		{#if showMore}
 			<div id="extra-leaders" class="fade-in">
-				{#each extraLeaders as {key, value}}
+				{#each extraLeaders as { key, value } (key)}
 					<div class="card">
 						<h3>{formatLabel(key)}</h3>
 						{#if typeof value === 'string'}
 							<p class="leader-name">👤 {value || 'TBD'}</p>
 						{:else if Array.isArray(value) && value.length > 0}
-							{#each value as member}
+							{#each value as member (member)}
 								<p class="team-member">👤 {member}</p>
 							{/each}
 						{:else}
