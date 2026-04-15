@@ -1,10 +1,10 @@
 <script lang="ts">  
-  import { base } from '$app/paths';  
+  import { resolve } from '$app/paths';  
   import { goto } from '$app/navigation';  
 
 
   function navigate_to_gallery() {  
-    goto(`${base}/gallery`);  
+    goto(resolve('/gallery'));  
   }  
 </script>  
 
@@ -33,17 +33,7 @@
     overflow: hidden;
   }
 
-  .decoration {
-    display: flex;
-    align-items: center;
-    height: 100%;
-  }
-
-  .logo { 
-    height: 60%;
-    width: auto; 
-    display: block;
-  }
+  
 
   .navigators {
     display: flex;
@@ -59,9 +49,7 @@
   }  
 
   @media (max-width: 600px) {
-    .logo {
-      height: 50%;
-    }
+    
     button {
       padding: 0.4rem 0.8rem;
       font-size: 0.9rem;
